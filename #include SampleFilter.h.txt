@@ -1,0 +1,106 @@
+#include "SampleFilter.h"
+
+static double filter_taps[SAMPLEFILTER_TAP_NUM] = {
+  0.00015601092510117117,
+  -0.00788066566055242,
+  -0.015212584807290128,
+  -0.0051757886625766435,
+  0.010287142538108768,
+  0.0021359202821149463,
+  -0.01331299988252857,
+  0.000897418909446179,
+  0.017512250021890986,
+  -0.0058136692224486815,
+  -0.022216328379151724,
+  0.01386646078192495,
+  0.027008437007516397,
+  -0.026877800188187126,
+  -0.03137670260833094,
+  0.04927276219201276,
+  0.03490049003725312,
+  -0.09699196858890283,
+  -0.03719050858495419,
+  0.31518557868167985,
+  0.5379778171271277,
+  0.31518557868167985,
+  -0.03719050858495419,
+  -0.09699196858890283,
+  0.03490049003725312,
+  0.04927276219201276,
+  -0.03137670260833094,
+  -0.026877800188187126,
+  0.027008437007516397,
+  0.01386646078192495,
+  -0.022216328379151724,
+  -0.0058136692224486815,
+  0.017512250021890986,
+  0.000897418909446179,
+  -0.01331299988252857,
+  0.0021359202821149463,
+  0.010287142538108768,
+  -0.0051757886625766435,
+  -0.015212584807290128,
+  -0.00788066566055242,
+  0.00015601092510117117
+};
+
+void SampleFilter_init(SampleFilter* f) {
+  int i;
+  for(i = 0; i < SAMPLEFILTER_TAP_NUM; ++i)
+    f->history[i] = 0;
+  f->last_index = 0;
+}
+
+void SampleFilter_put(SampleFilter* f, double input) {
+  f->history[f->last_index++] = input;
+  if(f->last_index == SAMPLEFILTER_TAP_NUM)
+    f->last_index = 0;
+}
+
+double SampleFilter_get(SampleFilter* f) {
+  double acc = 0;
+  int index = f->last_index, i;
+  for(i = 0; i < SAMPLEFILTER_TAP_NUM; ++i) {
+    index = index != 0 ? index-1 : SAMPLEFILTER_TAP_NUM-1;
+    acc += f->history[index] * filter_taps[i];
+  };
+  return acc;
+}
+
+
+--------------------------
+
+#ifndef SAMPLEFILTER_H_
+#define SAMPLEFILTER_H_
+
+/*
+
+FIR filter designed with
+ http://t-filter.appspot.com
+
+sampling frequency: 2000 Hz
+
+* 0 Hz - 500 Hz
+  gain = 1
+  desired ripple = 5 dB
+  actual ripple = 0.7592001854430748 dB
+
+* 600 Hz - 1000 Hz
+  gain = 0
+  desired attenuation = -40 dB
+  actual attenuation = -54.6484344884681 dB
+
+*/
+
+#define SAMPLEFILTER_TAP_NUM 41
+
+typedef struct {
+  double history[SAMPLEFILTER_TAP_NUM];
+  unsigned int last_index;
+} SampleFilter;
+
+void SampleFilter_init(SampleFilter* f);
+void SampleFilter_put(SampleFilter* f, double input);
+double SampleFilter_get(SampleFilter* f);
+
+#endif
